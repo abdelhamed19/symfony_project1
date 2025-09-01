@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Entity\Category;
+use App\Form\CategoryType;
 use App\Traits\ResponseTrait;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,9 +23,17 @@ final class CategoryController extends AbstractController
         $this->entityManager = $entityManager;
     }
     #[Route('/index', name: 'all_categories', methods: ['GET'])]
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         $repository = $this->entityManager->getRepository(Category::class);
+        $name = $request->query->get('name');
+        if ($name) {
+            $category = $repository->findByName($name);
+            if (!$category) {
+                return $this->errorMessage('Category not found', 404);
+            }
+            return $this->successData($category->toArray(true));
+        }
         $categories = $repository->findAll();
         foreach ($categories as $key => $category) {
             $categories[$key] = $category->toArray(true);
@@ -32,35 +41,35 @@ final class CategoryController extends AbstractController
         return $this->successData($categories);
     }
     #[Route('/create', name: 'create_category', methods: ['POST'])]
-    public function store(Request $request, ValidatorInterface $validator): JsonResponse
+    public function store(Request $request): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
-
         $category = new Category();
-        $category->setName($data['name'] ?? '');
+        $form = $this->createForm(CategoryType::class, $category);
 
-        $errors = $validator->validate($category);
-        if (count($errors) > 0) {
-            $errorMessages = array_map(function ($e) {
-                return $e->getMessage();
-            }, iterator_to_array($errors));
-            return $this->errorMessages($errorMessages, 400);
+        // form-data -> $request->request->all()
+        // raw/json -> json_decode($request->getContent(), true)
+        $data = $request->request->all();
+
+        $form->submit($data);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->beginTransaction();
+
+            try {
+                $this->entityManager->persist($category);
+                $this->entityManager->flush();
+                $this->entityManager->commit();
+
+                return $this->successData($category->toArray(), 201);
+            } catch (\Exception $e) {
+                $this->entityManager->rollback();
+                return $this->errorMessages([$e->getMessage()], 500);
+            }
         }
 
-        $this->entityManager->beginTransaction();
-
-        try {
-            $this->entityManager->persist($category);
-            $this->entityManager->flush();
-
-            $this->entityManager->commit();
-
-            return $this->successData($category->toArray(), 201);
-        } catch (\Exception $e) {
-            $this->entityManager->rollback();
-            return $this->errorMessages([$e->getMessage()], 500);
-        }
+        return $this->errorMessages(handleValidationError($form), 400);
     }
+
     #[Route('/show/{id}', name: 'show_category', methods: ['GET'])]
     public function show($id): JsonResponse
     {
@@ -71,30 +80,33 @@ final class CategoryController extends AbstractController
         }
         return $this->successData($category->toArray());
     }
-    #[Route('/update/{id}', name: 'update_category', methods: ['PATCH'])]
-    public function update(Request $request, ValidatorInterface $validator, $id): JsonResponse
+    #[Route('/update/{id}', name: 'update_category', methods: ['PUT'])]
+    public function update(Request $request, $id): JsonResponse
     {
-        $data = json_decode($request->getContent(), true);
         $category = $this->entityManager->getRepository(Category::class)->find($id);
 
         if (!$category) {
             return $this->errorMessage('Category not found', 404);
         }
 
-        $category->setName($data['name'] ?? '');
+        $data = json_decode($request->getContent(), true);
+        $form = $this->createForm(CategoryType::class, $category);
+        $form->submit($data);
 
-        $errors = $validator->validate($category);
-        if (count($errors) > 0) {
-            $errorMessages = array_map(fn($e) => $e->getMessage(), iterator_to_array($errors));
-            return $this->errorMessages($errorMessages, 400);
-        }
+        if($form->isValid() && $form->isSubmitted()) {
+            $this->entityManager->beginTransaction();
 
-        try {
-            $this->entityManager->flush();
-            return $this->successData($category->toArray(), 200);
-        } catch (\Exception $e) {
-            return $this->errorMessages([$e->getMessage()], 500);
+            try {
+                $this->entityManager->flush();
+                $this->entityManager->commit();
+
+                return $this->successData($category->toArray(), 200);
+            } catch (\Exception $e) {
+                $this->entityManager->rollback();
+                return $this->errorMessages([$e->getMessage()], 500);
+            }
         }
+        return $this->errorMessages(handleValidationError($form), 400);
     }
 
     #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'])]

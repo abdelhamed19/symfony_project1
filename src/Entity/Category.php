@@ -9,7 +9,6 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\NotBlank;
-use Symfony\Component\Validator\Mapping\ClassMetadata;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 class Category
@@ -20,7 +19,26 @@ class Category
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+
+    #[NotBlank(
+        message: 'name should not be blank',
+    )]
+    #[NotNull(
+        message: 'name should not be null',
+    )]
+    #[Length(
+        min: 2,
+        max: 50,
+        minMessage: 'name must be at least {{ limit }} characters long',
+        maxMessage: 'name cannot be longer than {{ limit }} characters',
+    )]
     private ?string $name = null;
+
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeInterface $created_at = null;
+
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeInterface $updated_at = null;
 
     /**
      * @var Collection<int, Article>
@@ -31,6 +49,8 @@ class Category
     public function __construct()
     {
         $this->articles = new ArrayCollection();
+        $this->created_at = new \DateTimeImmutable();
+        $this->updated_at = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -57,12 +77,23 @@ class Category
     {
         return $this->articles;
     }
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->created_at;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
 
     public function toArray(bool $withRelations = false): array
     {
         $data = [
             'id' => $this->getId(),
             'name' => $this->getName(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
 
         if ($withRelations) {
@@ -95,20 +126,5 @@ class Category
         }
 
         return $this;
-    }
-    public static function loadValidatorMetadata(ClassMetadata $metadata): void
-    {
-        $metadata->addPropertyConstraint('name', new NotBlank([
-            'message' => 'Name should not be blank',
-        ]));
-        $metadata->addPropertyConstraint('name', new NotNull([
-            'message' => 'Name should not be null',
-        ]));
-        $metadata->addPropertyConstraint('name', new Length([
-            'min' => 3,
-            'max' => 50,
-            'minMessage' => 'Name must be at least {{ limit }} characters',
-            'maxMessage' => 'Name cannot be longer than {{ limit }} characters',
-        ]));
     }
 }

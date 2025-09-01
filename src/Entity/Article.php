@@ -18,11 +18,36 @@ class Article
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
+
+    #[NotBlank(
+        message: 'title should not be blank',
+    )]
+    #[NotNull(
+        message: 'title should not be null',
+    )]
+    #[Length(
+        min: 2,
+        max: 50,
+        minMessage: 'title must be at least {{ limit }} characters long',
+        maxMessage: 'title cannot be longer than {{ limit }} characters',
+    )]
     private ?string $title = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Category $category = null;
+
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeInterface $created_at = null;
+
+    #[ORM\Column(type: 'datetime')]
+    private ?\DateTimeInterface $updated_at = null;
+
+    public function __construct()
+    {
+        $this->created_at = new \DateTimeImmutable();
+        $this->updated_at = new \DateTimeImmutable();
+    }
 
     public function getId(): ?int
     {
@@ -46,11 +71,23 @@ class Article
         return $this->category;
     }
 
+    public function getCreatedAt(): ?\DateTimeInterface
+    {
+        return $this->created_at;
+    }
+
+    public function getUpdatedAt(): ?\DateTimeInterface
+    {
+        return $this->updated_at;
+    }
+
     public function toArray(bool $withRelations = false): array
     {
         $data = [
             'id' => $this->getId(),
             'title' => $this->getTitle(),
+            'created_at' => $this->getCreatedAt(),
+            'updated_at' => $this->getUpdatedAt(),
         ];
 
         if ($withRelations) {
@@ -66,31 +103,5 @@ class Article
         $this->category = $category;
 
         return $this;
-    }
-
-    public static function loadValidatorMetadata(ClassMetadata $metadata): void
-    {
-        $metadata->addPropertyConstraint('title', new NotBlank([
-            'message' => 'Title should not be blank',
-        ]));
-
-        $metadata->addPropertyConstraint('title', new NotNull([
-            'message' => 'Title should not be null',
-        ]));
-
-        $metadata->addPropertyConstraint('title', new Length([
-            'min' => 3,
-            'max' => 50,
-            'minMessage' => 'Title must be at least {{ limit }} characters',
-            'maxMessage' => 'Title cannot be longer than {{ limit }} characters',
-        ]));
-
-        $metadata->addPropertyConstraint('category', new NotNull([
-            'message' => 'category is required',
-        ]));
-
-        $metadata->addPropertyConstraint('category', new NotBlank([
-            'message' => 'category cannot be blank',
-        ]));
     }
 }
