@@ -40,4 +40,14 @@ class ArticleRepository extends ServiceEntityRepository
     //            ->getOneOrNullResult()
     //        ;
     //    }
+    public function findArticlesWithCategoryThree()
+    {
+        return $this->createQueryBuilder('a')
+            ->andWhere('a.category = :val')
+            ->setParameter('val', 3)
+            ->orderBy('a.id', 'ASC')
+            ->getQuery()
+            ->getResult()
+        ;
+    }
 }

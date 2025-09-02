@@ -6,9 +6,12 @@ use Symfony\Component\HttpFoundation\JsonResponse;
 
 trait ResponseTrait
 {
-    public function successData($data = [], int $status = 200): JsonResponse
+    public function successData($data, int $status = 200): JsonResponse
     {
-        return new JsonResponse(['data' => $data], $status);
+        if (isset($data['data'])) {
+            return new JsonResponse($data, $status, []);
+        }
+        return new JsonResponse(['data' => $data], $status, []);
     }
     public function successMessage(string $message, int $status = 200): JsonResponse
     {

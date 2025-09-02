@@ -6,51 +6,41 @@ use Doctrine\ORM\Mapping as ORM;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
-use Symfony\Component\Validator\Constraints\Length;
-use Symfony\Component\Validator\Constraints\NotNull;
-use Symfony\Component\Validator\Constraints\NotBlank;
+use Symfony\Component\Serializer\Annotation\Groups;
+
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
+#[ORM\HasLifecycleCallbacks]
 class Category
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
+   #[Groups(['category:read', 'article:with_category'])]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-
-    #[NotBlank(
-        message: 'name should not be blank',
-    )]
-    #[NotNull(
-        message: 'name should not be null',
-    )]
-    #[Length(
-        min: 2,
-        max: 50,
-        minMessage: 'name must be at least {{ limit }} characters long',
-        maxMessage: 'name cannot be longer than {{ limit }} characters',
-    )]
+    #[Groups(['category:read', 'article:with_category'])]
     private ?string $name = null;
 
-    #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $created_at = null;
+    #[ORM\Column(type: 'datetime_immutable')]
+    #[Groups(['category:read'])]
+    private ?\DateTimeImmutable $created_at = null;
 
-    #[ORM\Column(type: 'datetime')]
-    private ?\DateTimeInterface $updated_at = null;
+    #[ORM\Column(type: 'datetime_immutable', nullable: true)]
+    #[Groups(['category:read'])]
+    private ?\DateTimeImmutable $updated_at = null;
 
     /**
      * @var Collection<int, Article>
      */
     #[ORM\OneToMany(targetEntity: Article::class, mappedBy: 'category')]
+    #[Groups(['category:with_articles'])]
     private Collection $articles;
 
     public function __construct()
     {
         $this->articles = new ArrayCollection();
-        $this->created_at = new \DateTimeImmutable();
-        $this->updated_at = new \DateTimeImmutable();
     }
 
     public function getId(): ?int
@@ -66,7 +56,6 @@ class Category
     public function setName(string $name): static
     {
         $this->name = $name;
-
         return $this;
     }
 
@@ -77,6 +66,7 @@ class Category
     {
         return $this->articles;
     }
+
     public function getCreatedAt(): ?\DateTimeInterface
     {
         return $this->created_at;
@@ -87,24 +77,18 @@ class Category
         return $this->updated_at;
     }
 
-    public function toArray(bool $withRelations = false): array
+    #[ORM\PrePersist]
+    public function setCreatedAtValue(): void
     {
-        $data = [
-            'id' => $this->getId(),
-            'name' => $this->getName(),
-            'created_at' => $this->getCreatedAt(),
-            'updated_at' => $this->getUpdatedAt(),
-        ];
-
-        if ($withRelations) {
-            $data['articles'] = $this->getArticles()
-                ->map(fn($article) => $article->toArray())
-                ->toArray();
-        }
-
-        return $data;
+        $this->created_at = new \DateTimeImmutable();
+        $this->updated_at = new \DateTimeImmutable();
     }
 
+    #[ORM\PreUpdate]
+    public function setUpdatedAtValue(): void
+    {
+        $this->updated_at = new \DateTimeImmutable();
+    }
 
     public function addArticle(Article $article): static
     {
@@ -112,19 +96,16 @@ class Category
             $this->articles->add($article);
             $article->setCategory($this);
         }
-
         return $this;
     }
 
     public function removeArticle(Article $article): static
     {
         if ($this->articles->removeElement($article)) {
-            // set the owning side to null (unless already changed)
             if ($article->getCategory() === $this) {
                 $article->setCategory(null);
             }
         }
-
         return $this;
     }
 }
