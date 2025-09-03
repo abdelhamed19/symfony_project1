@@ -6,6 +6,5 @@ function handleValidationError($form): array
     foreach ($form->getErrors(true) as $error) {
         $errors[] = $error->getMessage();
     }
-
     return $errors;
 }

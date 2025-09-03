@@ -3,14 +3,21 @@
 namespace App\Form;
 
 use App\Entity\Category;
+use BcMath\Number;
+use Symfony\Component\Form\FormEvent;
+use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\Validator\Constraints\File;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotNull;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\OptionsResolver\OptionsResolver;
+use Symfony\Component\Form\Extension\Core\Type\FileType;
+use Symfony\Component\Form\Extension\Core\Type\NumberType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Validator\Constraints\Required;
 
 class CategoryType extends AbstractType
 {
@@ -18,7 +25,6 @@ class CategoryType extends AbstractType
     {
         $builder
             ->add('name', TextType::class, [
-                'required' => true,
                 'constraints' => [
                     new NotBlank([
                         'message' => 'Name should not be blank',
@@ -34,7 +40,17 @@ class CategoryType extends AbstractType
                     ]),
                 ],
             ])
-        ;
+            ->add('imageFile', FileType::class, [
+                'mapped' => true,
+                'required' => false,
+                'constraints' => [
+                    new File([
+                        'maxSize' => '5M',
+                        'mimeTypes' => ['image/jpeg', 'image/png'],
+                        'mimeTypesMessage' => 'Please upload a valid image (JPEG or PNG)',
+                    ])
+                ],
+            ]);
     }
 
     public function configureOptions(OptionsResolver $resolver): void

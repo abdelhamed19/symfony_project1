@@ -5,12 +5,12 @@ namespace App\Controller;
 use App\Entity\Category;
 use App\Form\CategoryType;
 use App\Traits\ResponseTrait;
+use App\Form\UpdateSortOrderType;
 use App\Services\CategoryService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\HttpFoundation\JsonResponse;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 
 #[Route('/api/categories')]
@@ -33,8 +33,9 @@ final class CategoryController extends AbstractController
 
         // form-data -> $request->request->all()
         // raw/json -> json_decode($request->getContent(), true)
-        $data = $request->request->all();
 
+        $data = $request->request->all();
+        $data['imageFile'] = $request->files->get('imageFile');
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -83,11 +84,31 @@ final class CategoryController extends AbstractController
     #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'])]
     public function destroy(int $id): JsonResponse
     {
-        $result = $this->categoryService->deleteCategory($id);
+        $result = $this->categoryService->deleteCategory($id, $this->getParameter('app.upload_dir'));
         if ($result === null) {
             return $this->errorMessage('Error Deleting Category', 404);
         } else {
             return $this->successMessage('Category deleted successfully', 200);
         }
+    }
+
+    #[Route('/update-sort-order/{id}', name: 'update_category_sort_order', methods: ['PUT'])]
+    public function updateSortOrder(Request $request, $id)
+    {
+        $category = $this->entityManager->getRepository(Category::class)->find($id);
+        if (!$category) {
+            return $this->errorMessage('Category not found.', 404);
+        }
+
+        $form = $this->createForm(UpdateSortOrderType::class, $category);
+
+        $form->submit(json_decode($request->getContent(), true), false);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->entityManager->flush();
+            return $this->successMessage('Category sort order updated successfully.');
+        }
+
+        return $this->errorMessages(handleValidationError($form), 400);
     }
 }

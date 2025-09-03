@@ -15,7 +15,7 @@ trait PaginationTrait
         $pagination = $paginator->paginate(
             $query,
             $request->query->getInt('page', 1),
-            $request->query->getInt('limit', 1)
+            $request->query->getInt('limit', 10)
         );
 
         $items = $this->normalizer->normalize($pagination->getItems(), null, $normalizerOptions);

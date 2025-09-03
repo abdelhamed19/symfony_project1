@@ -23,5 +23,21 @@ class CategoryRepository extends ServiceEntityRepository
             ->getQuery()
             ->getOneOrNullResult();
     }
+    public function findMaxSortOrder(): int
+    {
+        $result = $this->createQueryBuilder('c')
+            ->select('MAX(c.sort_order)')
+            ->getQuery()
+            ->getSingleScalarResult();
 
+        return $result === null ? 0 : (int) $result;
+    }
+
+    public function findAllOrderedBySortOrder($sort)
+    {
+        return $this->createQueryBuilder('c')
+            ->orderBy('c.sort_order', $sort)
+            ->getQuery()
+            ->getResult();
+    }
 }
