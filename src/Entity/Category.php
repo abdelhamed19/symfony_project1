@@ -7,12 +7,14 @@ use Doctrine\ORM\Mapping as ORM;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
+use JMS\Serializer\Annotation as Serializer;
 use Symfony\Component\Serializer\Annotation\Groups;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\HasLifecycleCallbacks]
 #[ORM\Table(name: 'category')]
+#[Serializer\ExclusionPolicy('all')]
 class Category
 {
     use FileTrait;
@@ -20,37 +22,43 @@ class Category
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['category:read', 'article:with_category'])]
+
+    // #[Groups(['category:read', 'article:with_category'])]
+    #[Serializer\Expose()]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['category:read', 'article:with_category'])]
+    // #[Groups(['category:read', 'article:with_category'])]
+    #[Serializer\Expose()]
     private ?string $name = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    #[Groups(['category:read'])]
+    // #[Groups(['category:read'])]
     private ?string $image = null;
 
     #[ORM\Column(type: "integer", options: ["default" => 0])]
-    #[Groups(['category:read'])]
+    // #[Groups(['category:read'])]
     private ?int $sort_order = 0;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    #[Groups(['category:read'])]
+    // #[Groups(['category:read'])]
     private ?\DateTimeImmutable $created_at = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    #[Groups(['category:read'])]
+    // #[Groups(['category:read'])]
     private ?\DateTimeImmutable $updated_at = null;
 
     /**
      * @var Collection<int, Article>
      */
     #[ORM\OneToMany(targetEntity: Article::class, mappedBy: 'category')]
-    #[Groups(['category:with_articles'])]
+    // #[Groups(['category:with_articles'])]
+    #[Serializer\Expose()]
     private Collection $articles;
 
     public const IMAGE_DIR = '/categories';
+
+    //  private ?UploadedFile $imageFile = null;
 
     public function __construct()
     {

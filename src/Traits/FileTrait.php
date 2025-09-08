@@ -17,19 +17,9 @@ trait FileTrait
         ?UploadedFile $imageFile,
         string $uploadDir,
         string $propertyName = 'image',
-        array $allowedMimes = ['image/jpeg', 'image/png', 'image/gif'],
-        int $maxSize = 2 * 1024 * 1024
     ): ?string {
         if (null === $imageFile) {
             return $this->$propertyName ?? null;
-        }
-
-        if (!in_array($imageFile->getMimeType(), $allowedMimes, true)) {
-            throw new \InvalidArgumentException('Invalid file type. Allowed types: ' . implode(', ', $allowedMimes));
-        }
-
-        if ($imageFile->getSize() > $maxSize) {
-            throw new \InvalidArgumentException('File size exceeds the maximum limit of ' . ($maxSize / 1024 / 1024) . 'MB');
         }
 
         $fileName = uniqid('file_') . '.' . $imageFile->guessExtension();

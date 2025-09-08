@@ -5,32 +5,34 @@ namespace App\Entity;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\ArticleRepository;
 use Symfony\Component\Serializer\Annotation\Groups;
+use JMS\Serializer\Annotation as Serializer;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
-// #[ORM\Entity()]
+#[ORM\HasLifecycleCallbacks]
+#[Serializer\ExclusionPolicy('all')]
 class Article
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['article:read', 'category:with_articles'])]
+    #[Serializer\Expose()]
     private ?int $id = null;
 
     #[ORM\Column(length: 255)]
-    #[Groups(['article:read', 'category:with_articles'])]
+    #[Serializer\Expose()]
     private ?string $title = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
-    #[Groups(['article:with_category'])]
+    #[Serializer\Expose()]
     private ?Category $category = null;
 
     #[ORM\Column(type: 'datetime')]
-    #[Groups(['article:read', 'category:with_articles'])]
+    #[Serializer\Expose()]
     private ?\DateTimeInterface $created_at = null;
 
     #[ORM\Column(type: 'datetime')]
-    #[Groups(['article:read'])]
+    #[Serializer\Expose()]
     private ?\DateTimeInterface $updated_at = null;
 
     public function getId(): ?int

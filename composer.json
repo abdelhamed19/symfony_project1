@@ -11,6 +11,8 @@
         "doctrine/doctrine-bundle": "^2.15",
         "doctrine/doctrine-migrations-bundle": "^3.4",
         "doctrine/orm": "^3.5",
+        "friendsofsymfony/rest-bundle": "^3.8",
+        "jms/serializer-bundle": "*",
         "knplabs/knp-paginator-bundle": "^6.9",
         "lexik/jwt-authentication-bundle": "^3.1",
         "phpdocumentor/reflection-docblock": "^5.6",

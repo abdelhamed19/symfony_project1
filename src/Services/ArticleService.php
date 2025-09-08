@@ -24,7 +24,11 @@ class ArticleService
     public function listAll($request)
     {
         $data = $this->articleRepository->findAll();
-        $data = $this->paginateData($data, $request, ['groups' => ['article:read', 'article:with_category']], $this->paginator, $this->urlGenerator);
+        $data = $this->paginator->paginate(
+            $data,
+            $request->query->getInt('page', 1),
+            $request->query->getInt('limit', 10)
+        );
         return $data;
     }
     public function storeArticle($data, $article)
@@ -48,7 +52,7 @@ class ArticleService
         if (!$article) {
             return null;
         }
-        return $this->normalizer->normalize($article, null, ['groups' => ['article:read']]);
+        return $article;
     }
     public function updateArticle()
     {

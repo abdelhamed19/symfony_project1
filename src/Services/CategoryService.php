@@ -32,8 +32,11 @@ class CategoryService
         } else {
             $data = $this->categoryRepository->findAllOrderedBySortOrder($request->query->get('sort', 'ASC'));
         }
-        $data = $this->paginateData($data, $request, ['groups' => ['category:read', 'category:with_articles']], $this->paginator, $this->urlGenerator);
-        return $data;
+        return $this->paginator->paginate(
+            $data,
+            $request->query->getInt('page', 1),
+            $request->query->getInt('limit', 10)
+        );
     }
     public function showCategory($id)
     {
@@ -41,7 +44,7 @@ class CategoryService
         if (!$category) {
             return null;
         }
-        return $this->normalizer->normalize($category, null, ['groups' => ['category:read', 'category:with_articles']]);
+        return $category;
     }
     public function storeCategory(Category $category)
     {
