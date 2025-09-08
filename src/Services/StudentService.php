@@ -47,6 +47,15 @@ class StudentService
             return $e->getMessage();
         }
     }
+    public function deleteStudent($student)
+    {
+        try {
+            $this->entityManager->remove($student);
+            $this->entityManager->flush();
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+    }
     private function uploadFile(UploadedFile $file)
     {
         $projectDir = $this->kernel->getProjectDir();

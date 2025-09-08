@@ -58,8 +58,20 @@ final class StudentController extends AbstractFOSRestController
             $this->restHelperService->succeeded()->addMessage('Student created successfully')->setData($student)->set('status', 201);
             return $this->handleView($this->view($this->restHelperService->getResponse()));
         }
-        
+
         $this->restHelperService->failed()->addMessage($student)->setData(null);
+        return $this->handleView($this->view($this->restHelperService->getResponse()));
+    }
+    #[Route('/delete/{id}', name: 'delete_student', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function delete($id)
+    {
+        $student = $this->studentService->showStudent($id);
+        if (!$student) {
+            $this->restHelperService->failed()->addMessage('Not Found')->set('status', 404);
+            return $this->handleView($this->view($this->restHelperService->getResponse()));
+        }
+        $this->studentService->deleteStudent($student);
+        $this->restHelperService->succeeded()->addMessage('Student deleted successfully')->setData(null);
         return $this->handleView($this->view($this->restHelperService->getResponse()));
     }
 }
