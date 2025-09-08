@@ -57,7 +57,7 @@ final class CategoryController extends AbstractFOSRestController
         return $this->handleView($this->view($this->rest->getResponse()));
     }
 
-    #[Route('/show/{id}', name: 'show_category', methods: ['GET'])]
+    #[Route('/show/{id}', name: 'show_category', methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show($id)
     {
         $data = $this->categoryService->showCategory($id);
@@ -68,7 +68,7 @@ final class CategoryController extends AbstractFOSRestController
         $this->rest->setData($data);
         return $this->handleView($this->view($this->rest->getResponse()));
     }
-    #[Route('/update/{id}', name: 'update_category', methods: ['PUT'])]
+    #[Route('/update/{id}', name: 'update_category', methods: ['PUT'], requirements: ['id' => '\d+'])]
     public function update(Request $request, $id)
     {
         $category = $this->entityManager->getRepository(Category::class)->find($id);
@@ -93,7 +93,7 @@ final class CategoryController extends AbstractFOSRestController
         return $this->handleView($this->view($this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null)));
     }
 
-    #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'])]
+    #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function destroy(int $id)
     {
         $result = $this->categoryService->deleteCategory($id, $this->getParameter('app.upload_dir'));

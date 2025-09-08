@@ -53,7 +53,7 @@ final class AtricleController extends AbstractFOSRestController
         $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
         return $this->handleView($this->view($this->rest->getResponse()));
     }
-    #[Route('/show/{id}', name: 'show_atricle',  methods: ['GET'])]
+    #[Route('/show/{id}', name: 'show_atricle',  methods: ['GET'], requirements: ['id' => '\d+'])]
     public function show($id)
     {
         $article = $this->articleService->showArticle($id);
@@ -65,7 +65,7 @@ final class AtricleController extends AbstractFOSRestController
 
         return $this->handleView($this->view($this->rest->getResponse()));
     }
-    #[Route('/update/{id}', name: 'update_atricle',  methods: ['PUT'])]
+    #[Route('/update/{id}', name: 'update_atricle',  methods: ['PUT'], requirements: ['id' => '\d+'])]
     public function update(Request $request, $id)
     {
         $data = json_decode($request->getContent(), true);
@@ -92,7 +92,7 @@ final class AtricleController extends AbstractFOSRestController
         $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
         return $this->handleView($this->view($this->rest->getResponse()));
     }
-    #[Route('/delete/{id}', name: 'delete_atricle',  methods: ['DELETE'])]
+    #[Route('/delete/{id}', name: 'delete_atricle',  methods: ['DELETE'], requirements: ['id' => '\d+'])]
     public function delete($id)
     {
         $result = $this->articleService->deleteArticle($id);
