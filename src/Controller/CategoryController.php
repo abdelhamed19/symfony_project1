@@ -4,128 +4,240 @@ namespace App\Controller;
 
 use App\Entity\Category;
 use App\Form\CategoryType;
-use App\Traits\ResponseTrait;
+use App\Form\CategoryImageType;
 use App\Form\UpdateSortOrderType;
-use App\Services\RestHelperService;
 use App\Services\CategoryService;
+use App\Services\RestHelperService;
 use Doctrine\ORM\EntityManagerInterface;
-use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use FOS\RestBundle\Controller\AbstractFOSRestController;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/api/categories')]
 final class CategoryController extends AbstractFOSRestController
 {
-    use ResponseTrait;
 
     public function __construct(
         private CategoryService $categoryService,
-        private EntityManagerInterface $entityManager,
+        private EntityManagerInterface $em,
         private RestHelperService $rest
     ) {}
+
     #[Route('/index', name: 'all_categories', methods: ['GET'])]
     public function index(Request $request)
     {
-        $data = $this->categoryService->listAll($request);
-        $this->rest->setPagination($data);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        $page = $request->query->getInt('page', 1);
+        $data = $this->categoryService->listAll($page);
+
+        $this->rest
+            ->succeeded()
+            ->setPagination($data);
+
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
+
     #[Route('/create', name: 'create_category', methods: ['POST'])]
-    public function store(Request $request)
+    public function create(Request $request): Response
     {
+        $category = new Category();
+
+        $form = $this->createForm(CategoryType::class, $category, [
+            'edit' => true
+        ]);
+
+        $form->submit($request->request->all());
+
+        if ($form->isSubmitted() && $form->isValid()) {
+
+            // $maxSortOrder = $this->categoryService->findMaxSortOrder();
+            // $category->setSortOrder($maxSortOrder + 1);
+
+            $this->em->persist($category);
+
+            $this->em->flush();
+
+            $this->rest
+                ->succeeded()
+                ->setData($category);
+
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
+        }
+
+        $this->rest
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
+    }
+
+    #[Route('/create/with/image', name: 'create_category_with_image', methods: ['POST'])]
+    public function createWithImage(Request $request)
+    {
+        $dataString = $request->request->get('data');
+        $file = $request->files->get('imageFile');
+        $data = json_decode($dataString, true) ?? [];
+
         $category = new Category();
         $form = $this->createForm(CategoryType::class, $category);
 
         // form-data -> $request->request->all()
         // raw/json -> json_decode($request->getContent(), true)
 
-        $data = $request->request->all();
-        $data['imageFile'] = $request->files->get('imageFile');
-        $form->submit($data);
+        $form->submit([
+            ...$data,
+            'imageFile' => $file
+        ]);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $category = $this->categoryService->storeCategory($category);
-            if ($category) {
-                $this->rest->succeeded()->addMessage('Category created successfully')->setData($category)->set('status', 201);
-                return $this->handleView($this->view($this->rest->getResponse()));
-            }
-            $this->rest->failed()->addMessage('Faild to create');
-            return $this->handleView($this->view($this->rest->getResponse()));
+            // $maxSortOrder = $this->categoryService->findMaxSortOrder();
+            // $category->setSortOrder($maxSortOrder + 1);
+
+            $this->em->persist($category);
+            $this->em->flush();
+
+            $this->categoryService->uploadImage($category, $file);
+
+            $this->rest
+                ->succeeded()
+                ->addMessage('Category created successfully')
+                ->setData($category)
+                ->set('status', 201);
+
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
         }
 
-        $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        $this->rest
+        ->failed()
+        ->setFormErrors($form->getErrors(true))
+        ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
+    }
+
+    #[Route('/upload/image/{id}', name: 'upload_category_image', methods: ['POST'], requirements: ['id' => '\d+'])]
+    public function uploadImage(Request $request, Category $category)
+    {
+        $form = $this->createForm(CategoryImageType::class);
+        $file = $request->files->get('imageFile');
+        $form->submit(['imageFile' => $file]);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->categoryService->uploadImage($category, $file);
+            $this->rest->succeeded()->setData($category);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
+        }
+
+        $this->rest
+        ->failed()
+        ->setFormErrors($form->getErrors(true))
+        ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/show/{id}', name: 'show_category', methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show($id)
+    public function show(Category $category)
     {
-        $data = $this->categoryService->showCategory($id);
-        if (!$data) {
-            $this->rest->failed()->addMessage('Failed to retrieve category');
-            return $this->handleView($this->view($this->rest->getResponse()));
-        }
-        $this->rest->setData($data);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        $this->rest->setData($category);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
+
     #[Route('/update/{id}', name: 'update_category', methods: ['PUT'], requirements: ['id' => '\d+'])]
-    public function update(Request $request, $id)
+    public function update(Request $request, Category $category)
     {
-        $category = $this->entityManager->getRepository(Category::class)->find($id);
-
-        if (!$category) {
-            return $this->rest->failed()->addMessage('Category not found');
-        }
-
-        $data = json_decode($request->getContent(), true);
+        $data = $request->request->all();
         $form = $this->createForm(CategoryType::class, $category);
         $form->submit($data);
 
         if ($form->isValid() && $form->isSubmitted()) {
-            $category = $this->categoryService->updateCategory($category);
-            if ($category) {
-                $this->rest->succeeded()->addMessage('Category updated successfully')->setData($category)->set('status', 200);
-                return $this->handleView($this->view($this->rest->getResponse()));
+            try {
+                $this->em->flush();
+                $this->rest
+                    ->succeeded()
+                    ->addMessage('Category updated successfully')
+                    ->setData($category)
+                    ->set('status', 200);
+                return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
+            } catch (\Exception $e) {
+                $this->rest
+                    ->failed()
+                    ->addMessage($e->getMessage());
+                return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
             }
-            $this->rest->failed()->addMessage('Failed to update category');
-            return $this->handleView($this->view($this->rest->getResponse()));
         }
-        return $this->handleView($this->view($this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null)));
+        $this->rest
+        ->failed()
+        ->setFormErrors($form->getErrors(true))
+        ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
+    }
+
+    #[Route('/update/patch/{id}', name: 'update_category_patch', methods: ['PATCH'], requirements: ['id' => '\d+'])]
+    public function patchUpdate(Request $request, Category $category): Response
+    {
+        $form = $this->createForm(CategoryType::class, $category, ['edit' => true]);
+        $form->submit($request->request->all(), false);
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->em->flush();
+
+            $this
+                ->rest
+                ->succeeded()
+                ->addMessage('Category updated successfully')
+                ->setData($category)
+                ->set('status', 200);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
+        }
+        $this->rest
+        ->failed()
+        ->setFormErrors($form->getErrors(true))
+        ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'], requirements: ['id' => '\d+'])]
-    public function destroy(int $id)
+    public function delete(Category $category)
     {
-        $result = $this->categoryService->deleteCategory($id, $this->getParameter('app.upload_dir'));
-        if ($result === null) {
-            $this->rest->failed()->addMessage('Failed to delete category');
-            return $this->handleView($this->view($this->rest->getResponse()));
-        } else {
-            $this->rest->succeeded()->addMessage('Category deleted successfully')->set('status', 200);
-            return $this->handleView($this->view($this->rest->getResponse()));
+        try {
+            $this->em->remove($category);
+            $this->em->flush();
+
+            $this->rest
+                ->succeeded()
+                ->setData($category);
+        } catch (ForeignKeyConstraintViolationException $e) {
+            $this->rest
+                ->failed()
+                ->addMessage('Unable to delete the category');
         }
     }
 
-    #[Route('/update-sort-order/{id}', name: 'update_category_sort_order', methods: ['PUT'])]
-    public function updateSortOrder(Request $request, $id)
+    #[Route('/remove-image/{id}', name: 'remove_category_image', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    public function removeImage(Category $category)
     {
-        $category = $this->entityManager->getRepository(Category::class)->find($id);
-        if (!$category) {
-            $this->rest->failed()->addMessage('Failed to update sort order');
-            return $this->handleView($this->view($this->rest->getResponse()));
-        }
+        $this->categoryService->removeImage($category);
+        $this->rest->succeeded()->setData($category);
+        return $this->handleView($this->view($this->rest->getResponse()));
+    }
 
+    #[Route('/update-sort-order/{id}', name: 'update_category_sort_order', methods: ['PUT'], requirements: ['id' => '\d+'])]
+    public function updateSortOrder(Request $request, Category $category)
+    {
         $form = $this->createForm(UpdateSortOrderType::class, $category);
 
         $form->submit(json_decode($request->getContent(), true), false);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $this->entityManager->flush();
-            $this->rest->set('data', null);
+            $this->em->flush();
+            $this->rest->succeeded();
             return $this->handleView($this->view($this->rest->getResponse()));
         }
 
-        $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
+        $this->rest
+        ->failed()
+        ->setFormErrors($form->getErrors(true))
+        ->setData(null);
+
         return $this->handleView($this->view($this->rest->getResponse()));
     }
 }

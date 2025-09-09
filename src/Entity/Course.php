@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use JMS\Serializer\Annotation as Serializer;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CourseRepository::class)]
 #[ORM\HasLifecycleCallbacks()]
@@ -21,6 +22,8 @@ class Course
 
     #[ORM\Column(length: 255)]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
+    #[Assert\Length(min: 2, max: 255)]
     private ?string $name = null;
 
     #[ORM\Column]
@@ -126,7 +129,7 @@ class Course
         $this->createdAt = $now;
         $this->updatedAt = $now;
     }
-     #[ORM\PrePersist]
+    #[ORM\PrePersist]
     public function setCourseNumber(): void
     {
         $this->number = random_int(100, 9999);

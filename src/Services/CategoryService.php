@@ -2,93 +2,83 @@
 
 namespace App\Services;
 
-use App\Entity\Article;
+use App\Kernel;
 use App\Entity\Category;
-use App\Traits\FileTrait;
-use App\Traits\PaginationTrait;
+use Symfony\Component\Uid\Uuid;
 use App\Repository\CategoryRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Serializer\Normalizer\NormalizerInterface;
-use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
+use Symfony\Component\Filesystem\Filesystem;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class CategoryService
 {
-    use PaginationTrait, FileTrait;
     public function __construct(
         private CategoryRepository $categoryRepository,
-        private NormalizerInterface $normalizer,
-        private EntityManagerInterface $entityManager,
+        private EntityManagerInterface $em,
         private PaginatorInterface $paginator,
-        private UrlGeneratorInterface $urlGenerator,
-        private ParameterBagInterface $params
+        private Kernel $kernel
     ) {}
 
-    public function listAll($request)
+    public function listAll($page)
     {
-        if ($request->query->get('name')) {
-            $data = $this->categoryRepository->findByName($request->query->get('name'));
-        } else {
-            $data = $this->categoryRepository->findAllOrderedBySortOrder($request->query->get('sort', 'ASC'));
-        }
-        return $this->paginator->paginate(
-            $data,
-            $request->query->getInt('page', 1),
-            $request->query->getInt('limit', 10)
-        );
+        $qb = $this
+            ->em
+            ->createQueryBuilder()
+            ->select('c')
+            ->from(Category::class, 'c');
+
+        $query = $qb->getQuery();
+        return $this->paginator->paginate($query, $page, 20);
     }
-    public function showCategory($id)
+
+    public function findMaxSortOrder()
     {
-        $category = $this->categoryRepository->find($id);
-        if (!$category) {
-            return null;
-        }
-        return $category;
+        return $this->categoryRepository->findMaxSortOrder();
     }
-    public function storeCategory(Category $category)
+
+    private function getUploadPath(): string
     {
-        try {
-            $imageFile = $category->getImageFile();
-            if ($imageFile) {
-                $category->uploadImage(
-                    $imageFile,
-                    $this->params->get('app.upload_dir') . Category::IMAGE_DIR,
-                    'image',
-                    ['image/jpeg', 'image/png'],
-                    5 * 1024 * 1024
-                );
+        return "{$this->kernel->getProjectDir()}/public/uploads/category";
+    }
+    
+    public function uploadImage(Category $category, $uploadedFile): void
+    {
+        if ($uploadedFile instanceof UploadedFile) {
+            $this->removeImage($category);
+            $fileName = Uuid::v4();
+            $size = $uploadedFile->getSize();
+            $extension = strtolower($uploadedFile->getClientOriginalExtension());
+            if ($extension) {
+                $fileName = "{$fileName}.{$extension}";
             }
-            $maxSortOrder = $this->categoryRepository->findMaxSortOrder();
-            $category->setSortOrder($maxSortOrder + 1);
-            $this->entityManager->persist($category);
-            $this->entityManager->flush();
-            return true;
-        } catch (\Exception $e) {
-            return $e->getMessage();
+            $uploadedFile->move($this->getUploadPath(), $fileName);
+
+            $category
+                ->setImage($fileName)
+                ->setImageType($extension)
+                ->setImageSize($size);
+
+            $this->em->flush();
         }
     }
-    public function deleteCategory($id, $dir = null)
+
+    public function removeImage(Category $category): void
     {
-        try {
-            $category = $this->categoryRepository->find($id);
-            if ($category->getImage()) {
-                $result = $category->deleteImage($this->params->get('app.upload_dir') . Category::IMAGE_DIR);
+        if ($category->getImage()) {
+            $filePath = "{$this->getUploadPath()}/{$category->getImage()}";
+            $fs = new Filesystem();
+            if ($fs->exists($filePath)) {
+                $fs->remove($filePath);
             }
-            $this->entityManager->remove($category);
-            $this->entityManager->flush();
-            return true;
-        } catch (\Exception $e) {
-            return $e->getMessage();
+        }
+
+        if ($category->getId()) {
+            $category->setImage(null)
+                ->setImageType(null)
+                ->setImageSize(null);
+            $this->em->flush();
         }
     }
-    public function updateCategory()
-    {
-        try {
-            $this->entityManager->flush();
-            return true;
-        } catch (\Exception $e) {
-            return $e->getMessage();
-        }
-    }
+
 }

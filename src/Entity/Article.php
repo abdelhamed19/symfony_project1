@@ -4,8 +4,8 @@ namespace App\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\ArticleRepository;
-use Symfony\Component\Serializer\Annotation\Groups;
 use JMS\Serializer\Annotation as Serializer;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ArticleRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -20,18 +20,21 @@ class Article
 
     #[ORM\Column(length: 255)]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
+    #[Assert\Length(min: 2, max: 255)]
     private ?string $title = null;
 
     #[ORM\ManyToOne(inversedBy: 'articles')]
     #[ORM\JoinColumn(nullable: false)]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
     private ?Category $category = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(type: 'datetime_immutable')]
     #[Serializer\Expose()]
     private ?\DateTimeInterface $created_at = null;
 
-    #[ORM\Column(type: 'datetime')]
+    #[ORM\Column(type: 'datetime_immutable')]
     #[Serializer\Expose()]
     private ?\DateTimeInterface $updated_at = null;
 

@@ -3,22 +3,21 @@
 namespace App\Controller;
 
 use App\Entity\Article;
-use App\Entity\Category;
 use App\Form\ArticleType;
-use App\Traits\ResponseTrait;
 use App\Services\ArticleService;
 use App\Services\RestHelperService;
 use Doctrine\ORM\EntityManagerInterface;
-use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Attribute\Route;
+use FOS\RestBundle\Controller\AbstractFOSRestController;
+use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
+use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/api/atricles')]
 final class AtricleController extends AbstractFOSRestController
 {
-    use ResponseTrait;
     public function __construct(
-        private EntityManagerInterface $entityManager,
+        private EntityManagerInterface $em,
         private ArticleService $articleService,
         private RestHelperService $rest
     ) {}
@@ -28,79 +27,79 @@ final class AtricleController extends AbstractFOSRestController
     {
         $articles = $this->articleService->listAll($request);
         $this->rest->setPagination($articles);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
 
     #[Route('/store', name: 'store_atricle',  methods: ['POST'])]
     public function store(Request $request)
     {
-        $data = json_decode($request->getContent(), true);
+        $data = $request->request->all();
         $article = new Article();
 
         $form = $this->createForm(ArticleType::class, $article);
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $article = $this->articleService->storeArticle($data, $article);
-            if ($article == true) {
-                $this->rest->succeeded()->addMessage('Article created successfully')->setData($article)->set('status', 201);
-                return $this->handleView($this->view($this->rest->getResponse()));
-            } else {
-                $this->rest->failed()->addMessage($article)->set('status', 400);
-                return $this->handleView($this->view($this->rest->getResponse()));
-            }
+            $this->em->persist($article);
+            $this->em->flush();
+            $this->rest
+                ->succeeded()
+                ->setData($article);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
         }
-        $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        $this->rest
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
+
     #[Route('/show/{id}', name: 'show_atricle',  methods: ['GET'], requirements: ['id' => '\d+'])]
-    public function show($id)
+    public function show(Article $article)
     {
-        $article = $this->articleService->showArticle($id);
-        if (!$article) {
-            $this->rest->failed()->addMessage('Not Found')->set('status', 404);
-            return $this->handleView($this->view($this->rest->getResponse()));
-        }
         $this->rest->set('article', $article);
-
-        return $this->handleView($this->view($this->rest->getResponse()));
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
+
     #[Route('/update/{id}', name: 'update_atricle',  methods: ['PUT'], requirements: ['id' => '\d+'])]
-    public function update(Request $request, $id)
+    public function update(Request $request, Article $article)
     {
-        $data = json_decode($request->getContent(), true);
-
-        $article = $this->entityManager->getRepository(Article::class)->find($id);
-        $category = $this->entityManager->getRepository(Category::class)->find((int)$data['category'] ?? '');
-
-        if (!$category || !$article) {
-            return $this->rest->failed()->addMessage('Invalid category or article')->set('status', 400);
-        }
+        $data = $request->request->all();
 
         $form = $this->createForm(ArticleType::class, $article);
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            $article = $this->articleService->updateArticle();
-            if ($article == true) {
-                $this->rest->succeeded()->addMessage('Article updated successfully')->setData($article);
-                return $this->handleView($this->view($this->rest->getResponse()));
-            }
-            $this->rest->failed()->addMessage('Error updating article')->set('status', 500);
-            return $this->handleView($this->view($this->rest->getResponse()));
+            $this->em->flush();
+            $this->rest
+                ->succeeded()
+                ->addMessage('Article updated successfully')
+                ->setData($article);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
         }
-        $this->rest->failed()->setFormErrors($form->getErrors(true))->setData(null);
-        return $this->handleView($this->view($this->rest->getResponse()));
+        $this->rest
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
+
     #[Route('/delete/{id}', name: 'delete_atricle',  methods: ['DELETE'], requirements: ['id' => '\d+'])]
-    public function delete($id)
+    public function delete(Article $article)
     {
-        $result = $this->articleService->deleteArticle($id);
-        if ($result === true) {
-            $this->rest->succeeded()->addMessage('Article deleted successfully')->set('status', 200);
-            return $this->handleView($this->view($this->rest->getResponse()));
+        try {
+            $this->em->remove($article);
+            $this->em->flush();
+
+            $this
+                ->rest
+                ->succeeded()
+                ->setData($article);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
+        } catch (ForeignKeyConstraintViolationException $e) {
+            $this->rest
+                ->failed()
+                ->addMessage('Unable to delete the article');
         }
-        $this->rest->failed()->addMessage($result)->set('status', 500);
-        return $this->handleView($this->view($this->rest->getResponse()));
     }
 }

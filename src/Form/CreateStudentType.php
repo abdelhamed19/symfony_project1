@@ -21,32 +21,8 @@ class CreateStudentType extends AbstractType
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
         $builder
-            ->add('name', TextType::class, [
-                'constraints' => [
-                    new NotBlank([
-                        'message' => 'Name should not be blank',
-                    ]),
-                    new NotNull([
-                        'message' => 'Name should not be null',
-                    ]),
-                    new Length([
-                        'min' => 2,
-                        'max' => 50,
-                        'minMessage' => 'Name must be at least {{ limit }} characters long',
-                        'maxMessage' => 'Name cannot be longer than {{ limit }} characters',
-                    ]),
-                ],
-            ])
-            ->add('gender', null, [
-                'constraints' => [
-                    new NotNull([
-                        'message' => 'Gender should not be null',
-                    ]),
-                    new NotNull([
-                        'message' => 'Gender should not be null',
-                    ]),
-                ],
-            ])
+            ->add('name', TextType::class)
+            ->add('gender', null)
             ->add('image', FileType::class, [
                 'mapped' => true,
                 'required' => false,

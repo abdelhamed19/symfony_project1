@@ -7,6 +7,7 @@ use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use JMS\Serializer\Annotation as Serializer;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: StudentRepository::class)]
 #[Serializer\ExclusionPolicy('all')]
@@ -21,6 +22,8 @@ class Student
 
     #[ORM\Column(length: 255)]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
+    #[Assert\Length(min: 2, max: 255)]
     private ?string $name = null;
 
     #[ORM\Column(length: 255)]
@@ -33,6 +36,7 @@ class Student
 
     #[ORM\Column(type: 'boolean')]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
     private ?bool $gender = null;
 
     #[ORM\Column]

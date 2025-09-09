@@ -2,14 +2,12 @@
 
 namespace App\Entity;
 
-use App\Traits\FileTrait;
 use Doctrine\ORM\Mapping as ORM;
 use App\Repository\CategoryRepository;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\Common\Collections\ArrayCollection;
 use JMS\Serializer\Annotation as Serializer;
-use Symfony\Component\Serializer\Annotation\Groups;
-use Symfony\Component\HttpFoundation\File\UploadedFile;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CategoryRepository::class)]
 #[ORM\HasLifecycleCallbacks]
@@ -17,48 +15,54 @@ use Symfony\Component\HttpFoundation\File\UploadedFile;
 #[Serializer\ExclusionPolicy('all')]
 class Category
 {
-    use FileTrait;
 
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-
-    // #[Groups(['category:read', 'article:with_category'])]
     #[Serializer\Expose()]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255)]
-    // #[Groups(['category:read', 'article:with_category'])]
+    #[ORM\Column(length: 255, type:"string", nullable: false)]
     #[Serializer\Expose()]
+    #[Assert\NotBlank()]
+    #[Assert\Length(min: 2, max: 255)]
     private ?string $name = null;
 
     #[ORM\Column(type: 'string', length: 255, nullable: true)]
-    // #[Groups(['category:read'])]
+    #[Serializer\Expose()]
     private ?string $image = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Serializer\Expose()]
+    private ?string $imageType = null;
+
+    #[ORM\Column(type: 'integer', nullable: true)]
+    #[Serializer\Expose()]
+    private ?int $imageSize = null;
+
     #[ORM\Column(type: "integer", options: ["default" => 0])]
-    // #[Groups(['category:read'])]
+    #[Serializer\Expose()]
     private ?int $sort_order = 0;
 
     #[ORM\Column(type: 'datetime_immutable')]
-    // #[Groups(['category:read'])]
+    #[Serializer\Expose()]
     private ?\DateTimeImmutable $created_at = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
-    // #[Groups(['category:read'])]
+    #[Serializer\Expose()]
     private ?\DateTimeImmutable $updated_at = null;
 
     /**
      * @var Collection<int, Article>
      */
     #[ORM\OneToMany(targetEntity: Article::class, mappedBy: 'category')]
-    // #[Groups(['category:with_articles'])]
     #[Serializer\Expose()]
     private Collection $articles;
 
-    public const IMAGE_DIR = '/categories';
-
-    //  private ?UploadedFile $imageFile = null;
+    #[ORM\Column(type: 'boolean')]
+    #[Assert\Type(type: 'bool')]
+    #[Serializer\Expose()]
+    private ?bool $status = null;
 
     public function __construct()
     {
@@ -92,6 +96,25 @@ class Category
         return $this;
     }
 
+    public function isStatus(): ?bool
+    {
+        return $this->status;
+    }
+
+    public function setStatus(bool $status): self
+    {
+        $this->status = $status;
+        return $this;
+    }
+
+    #[Serializer\VirtualProperty()]
+    #[Serializer\Expose()]
+    #[Serializer\SerializedName('status_text')]
+    public function getStatusValue()
+    {
+        return $this->status == 1 ? "Active" : "Inactive";
+    }
+
     /**
      * @return Collection<int, Article>
      */
@@ -116,19 +139,31 @@ class Category
         return $this->created_at;
     }
 
+    public function getImageType(): ?string
+    {
+        return $this->imageType;
+    }
+
+    public function getImageSize(): ?string
+    {
+        return $this->imageSize;
+    }
+
+    public function setImageType(?string $imageType): self
+    {
+        $this->imageType = strtolower($imageType);
+        return $this;
+    }
+
+    public function setImageSize(?int $imageSize): self
+    {
+        $this->imageSize = $imageSize;
+        return $this;
+    }
+
     public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updated_at;
-    }
-
-    public function getImageFile(): ?UploadedFile
-    {
-        return $this->imageFile;
-    }
-    public function setImageFile(?UploadedFile $imageFile): self
-    {
-        $this->imageFile = $imageFile;
-        return $this;
     }
 
     #[ORM\PrePersist]
