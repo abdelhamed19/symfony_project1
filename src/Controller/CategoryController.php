@@ -26,6 +26,11 @@ final class CategoryController extends AbstractFOSRestController
     ) {}
 
     #[Route('/index', name: 'all_categories', methods: ['GET'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function index(Request $request)
     {
         $page = $request->query->getInt('page', 1);
@@ -39,6 +44,11 @@ final class CategoryController extends AbstractFOSRestController
     }
 
     #[Route('/create', name: 'create_category', methods: ['POST'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function create(Request $request): Response
     {
         $category = new Category();
@@ -73,6 +83,21 @@ final class CategoryController extends AbstractFOSRestController
     }
 
     #[Route('/create/with/image', name: 'create_category_with_image', methods: ['POST'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @OA\RequestBody(
+     *      @OA\MediaType(
+     *           mediaType="multipart/form-data",
+     *           @OA\Schema(type="object",
+     *              @OA\Property(property="document", type="string"),
+     *              @OA\Property(property="file", type="string", format="binary")
+     *           )
+     *      )
+     *   )
+     * )
+     * @Security(name="Bearer")
+     */
     public function createWithImage(Request $request)
     {
         $dataString = $request->request->get('data');
@@ -109,13 +134,27 @@ final class CategoryController extends AbstractFOSRestController
         }
 
         $this->rest
-        ->failed()
-        ->setFormErrors($form->getErrors(true))
-        ->setData(null);
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/upload/image/{id}', name: 'upload_category_image', methods: ['POST'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @OA\RequestBody(
+     *      @OA\MediaType(
+     *           mediaType="multipart/form-data",
+     *           @OA\Schema(type="object",
+     *              @OA\Property(property="file", type="string", format="binary")
+     *           )
+     *      )
+     *   )
+     * )
+     * @Security(name="Bearer")
+     */
     public function uploadImage(Request $request, Category $category)
     {
         $form = $this->createForm(CategoryImageType::class);
@@ -129,13 +168,19 @@ final class CategoryController extends AbstractFOSRestController
         }
 
         $this->rest
-        ->failed()
-        ->setFormErrors($form->getErrors(true))
-        ->setData(null);
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/show/{id}', name: 'show_category', methods: ['GET'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
+
     public function show(Category $category)
     {
         $this->rest->setData($category);
@@ -143,6 +188,28 @@ final class CategoryController extends AbstractFOSRestController
     }
 
     #[Route('/update/{id}', name: 'update_category', methods: ['PUT'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @OA\RequestBody(
+     *      description="Edit Category",
+     *      @OA\MediaType(
+     *          mediaType="application/json",
+     *          @OA\Schema(ref="#/components/schemas/categoryForm"),
+     *          @OA\Examples(example="categoryForm", ref="#/components/examples/categoryForm")
+     *      )
+     * )
+     * @OA\Response(
+     *     response=200,
+     *     description="Returns the Category",
+     *     @OA\JsonContent(
+     *        @OA\Property(property="success", type="boolean"),
+     *        @OA\Property(property="data", type="object", ref="#/components/schemas/category"),
+     *        @OA\Examples(example="category", ref="#/components/examples/category")
+     *     )
+     * )
+     * @Security(name="Bearer")
+     */
     public function update(Request $request, Category $category)
     {
         $data = $request->request->all();
@@ -166,13 +233,35 @@ final class CategoryController extends AbstractFOSRestController
             }
         }
         $this->rest
-        ->failed()
-        ->setFormErrors($form->getErrors(true))
-        ->setData(null);
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/update/patch/{id}', name: 'update_category_patch', methods: ['PATCH'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @OA\RequestBody(
+     *      description="Edit Category",
+     *      @OA\MediaType(
+     *          mediaType="application/json",
+     *          @OA\Schema(ref="#/components/schemas/categoryForm"),
+     *          @OA\Examples(example="categoryForm", ref="#/components/examples/categoryForm")
+     *      )
+     * )
+     * @OA\Response(
+     *     response=200,
+     *     description="Returns the Category",
+     *     @OA\JsonContent(
+     *        @OA\Property(property="success", type="boolean"),
+     *        @OA\Property(property="data", type="object", ref="#/components/schemas/category"),
+     *        @OA\Examples(example="category", ref="#/components/examples/category")
+     *     )
+     * )
+     * @Security(name="Bearer")
+     */
     public function patchUpdate(Request $request, Category $category): Response
     {
         $form = $this->createForm(CategoryType::class, $category, ['edit' => true]);
@@ -189,13 +278,18 @@ final class CategoryController extends AbstractFOSRestController
             return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
         }
         $this->rest
-        ->failed()
-        ->setFormErrors($form->getErrors(true))
-        ->setData(null);
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
     #[Route('/delete/{id}', name: 'delete_category', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function delete(Category $category)
     {
         try {
@@ -213,6 +307,11 @@ final class CategoryController extends AbstractFOSRestController
     }
 
     #[Route('/remove-image/{id}', name: 'remove_category_image', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Categories")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function removeImage(Category $category)
     {
         $this->categoryService->removeImage($category);
@@ -234,9 +333,9 @@ final class CategoryController extends AbstractFOSRestController
         }
 
         $this->rest
-        ->failed()
-        ->setFormErrors($form->getErrors(true))
-        ->setData(null);
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
 
         return $this->handleView($this->view($this->rest->getResponse()));
     }
