@@ -159,7 +159,7 @@ final class CategoryController extends AbstractFOSRestController
      */
     public function uploadImage(Request $request, Category $category)
     {
-        $form = $this->createForm(CategoryImageType::class);
+        $form = $this->createForm(CategoryImageType::class, $category);
         $file = $request->files->get('imageFile');
         $form->submit(['imageFile' => $file]);
 

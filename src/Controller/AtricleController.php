@@ -4,14 +4,15 @@ namespace App\Controller;
 
 use App\Entity\Article;
 use App\Form\ArticleType;
+use App\Form\ArticleImageType;
 use App\Services\ArticleService;
 use App\Services\RestHelperService;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
-use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/api/atricles')]
 final class AtricleController extends AbstractFOSRestController
@@ -59,7 +60,7 @@ final class AtricleController extends AbstractFOSRestController
             $this->em->flush();
 
             $this->articleService->uploadImage($article, $file);
-            
+
             $this->rest
                 ->succeeded()
                 ->setData($article);
@@ -94,7 +95,9 @@ final class AtricleController extends AbstractFOSRestController
     {
         $data = $request->request->all();
 
-        $form = $this->createForm(ArticleType::class, $article);
+        $form = $this->createForm(ArticleType::class, $article, [
+            'file_required' => false,
+        ]);
         $form->submit($data);
 
         if ($form->isSubmitted() && $form->isValid()) {
@@ -134,5 +137,52 @@ final class AtricleController extends AbstractFOSRestController
                 ->failed()
                 ->addMessage('Unable to delete the article');
         }
+    }
+
+    #[Route('/remove-image/{id}', name: 'remove_article_image', methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
+    public function removeImage(Article $article)
+    {
+        $this->articleService->removeImage($article);
+        $this->rest->succeeded()->setData($article);
+        return $this->handleView($this->view($this->rest->getResponse()));
+    }
+
+    #[Route('/upload/image/{id}', name: 'upload_article_image', methods: ['POST'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @OA\RequestBody(
+     *      @OA\MediaType(
+     *           mediaType="multipart/form-data",
+     *           @OA\Schema(type="object",
+     *              @OA\Property(property="file", type="string", format="binary")
+     *           )
+     *      )
+     *   )
+     * )
+     * @Security(name="Bearer")
+     */
+    public function uploadImage(Request $request, Article $article)
+    {
+        $form = $this->createForm(ArticleImageType::class, $article);
+        $file = $request->files->get('image');
+        $form->submit(['image' => $file]);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $this->articleService->uploadImage($article, $file);
+            $this->rest->succeeded()->setData($article);
+            return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
+        }
+
+        $this->rest
+            ->failed()
+            ->setFormErrors($form->getErrors(true))
+            ->setData(null);
+        return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 }

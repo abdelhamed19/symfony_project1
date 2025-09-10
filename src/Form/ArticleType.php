@@ -16,22 +16,25 @@ class ArticleType extends AbstractType
 {
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
+        $fileConstraints = [
+            new Assert\File([
+                'maxSize' => '5M',
+                'mimeTypes' => ['image/jpeg', 'image/png', 'image/gif'],
+                'mimeTypesMessage' => 'Please upload a valid image (JPEG or PNG)',
+            ])
+        ];
+
+        if ($options['file_required']) {
+            $fileConstraints[] = new Assert\NotBlank([
+                'message' => 'Please upload an image file',
+            ]);
+        }
+
         $builder
             ->add('title', TextType::class)
             ->add('image', FileType::class, [
                 'mapped' => false,
-                'constraints' => [
-                    new Assert\NotBlank(),
-                    new Assert\Image([
-                        'maxSize' => '2M',
-                        'mimeTypes' => [
-                            'image/jpeg',
-                            'image/png',
-                            'image/gif',
-                        ],
-                        'mimeTypesMessage' => 'Please upload a valid image (JPEG, PNG, GIF)',
-                    ]),
-                ],
+                'constraints' => $fileConstraints,
             ])
             ->add('category', EntityType::class, [
                 'class' => Category::class,
@@ -44,7 +47,8 @@ class ArticleType extends AbstractType
     {
         $resolver->setDefaults([
             'data_class' => Article::class,
-            'csrf_protection' => false
+            'csrf_protection' => false,
+            'file_required' => false,
         ]);
     }
 }
