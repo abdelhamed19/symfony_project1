@@ -26,7 +26,8 @@ class CategoryService
             ->em
             ->createQueryBuilder()
             ->select('c')
-            ->from(Category::class, 'c');
+            ->from(Category::class, 'c')
+            ->where('c.deleted = false');
 
         $query = $qb->getQuery();
         return $this->paginator->paginate($query, $page, 20);
@@ -41,7 +42,7 @@ class CategoryService
     {
         return "{$this->kernel->getProjectDir()}/public/uploads/category";
     }
-    
+
     public function uploadImage(Category $category, $uploadedFile): void
     {
         if ($uploadedFile instanceof UploadedFile) {

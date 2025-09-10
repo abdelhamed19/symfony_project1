@@ -25,5 +25,9 @@ services:
         tags:
             - { name: doctrine.event_listener, event: postRemove }
 
+    App\EventListener\StudentListener:
+        tags:
+            - { name: doctrine.event_listener, event: postRemove }
+
     # add more service definitions when explicit configuration is needed
     # please note that last definitions always *replace* previous ones

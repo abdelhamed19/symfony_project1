@@ -2,70 +2,77 @@
 
 namespace App\Services;
 
-use App\Entity\Student;
 use App\Kernel;
-use App\Repository\StudentRepository;
+use App\Entity\Student;
 use App\Traits\FileTrait;
+use Symfony\Component\Uid\Uuid;
+use App\Repository\StudentRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Knp\Component\Pager\PaginatorInterface;
+use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 class StudentService
 {
     public function __construct(
         private StudentRepository $studentRepository,
-        private EntityManagerInterface $entityManager,
+        private EntityManagerInterface $em,
         private PaginatorInterface $paginator,
         private Kernel $kernel
     ) {}
 
-    public function listAll($request)
+    public function listAll($page)
     {
-        $data = $this->studentRepository->findAll();
+        $qb = $this->em
+            ->createQueryBuilder()
+            ->select('s', 'c')
+            ->from(Student::class, 's')
+            ->leftJoin('s.courses', 'c');
+
+        $query = $qb->getQuery();
+
+
         return $this->paginator->paginate(
-            $data,
-            $request->query->getInt('page', 1),
-            $request->query->getInt('limit', 10)
+            $query,
+            $page,
+            20
         );
     }
-    public function showStudent($id)
+    private function getUploadPath(): string
     {
-        return $this->studentRepository->find($id);
+        return "{$this->kernel->getProjectDir()}/public/uploads/students";
     }
-    public function createStudent($data, $student)
+
+    public function uploadImage(Student $student, $uploadedFile): void
     {
-        try {
-            if (isset($data['image'])) {
-                // upload file
-                $file = $this->uploadFile($data['image']);
-                $student->setImage($file);
+        if ($uploadedFile instanceof UploadedFile) {
+            $this->removeImage($student);
+            $fileName = Uuid::v4();
+            $extension = strtolower($uploadedFile->getClientOriginalExtension());
+            if ($extension) {
+                $fileName = "{$fileName}.{$extension}";
             }
-            $this->entityManager->persist($student);
-            $this->entityManager->flush();
-            return $student;
-        } catch (\Exception $e) {
-            return $e->getMessage();
+            $uploadedFile->move($this->getUploadPath(), $fileName);
+
+            $student->setImage($fileName);
+
+            $this->em->flush();
         }
     }
-    public function deleteStudent($student)
+
+    public function removeImage(Student $student): void
     {
-        try {
-            $this->entityManager->remove($student);
-            $this->entityManager->flush();
-        } catch (\Exception $e) {
-            return $e->getMessage();
+        if ($student->getImage()) {
+            $filePath = "{$this->getUploadPath()}/{$student->getImage()}";
+            $fs = new Filesystem();
+            if ($fs->exists($filePath)) {
+                $fs->remove($filePath);
+            }
         }
-    }
-    private function uploadFile(UploadedFile $file)
-    {
-        $projectDir = $this->kernel->getProjectDir();
-        $fileDir = $projectDir . '/' . 'public/uploads/students';
-        $fileName = $file->getClientOriginalName() . '-' . rand(100, 9999);
-        try {
-            $file->move($fileDir, $fileName);
-            return $fileName;
-        } catch (\Exception $e) {
-            return $e->getMessage();
+
+        if ($student->getId()) {
+            $student->setImage(null);
+            $this->em->flush();
         }
     }
 }

@@ -23,16 +23,16 @@ class ArticleService
 
     public function listAll($page)
     {
-        $data = $this->articleRepository->findAll();
+        $data = $this->em->createQueryBuilder()
+            ->select('a AS article')
+            ->from(Article::class, 'a')
+            ->innerJoin('a.category', 'c')
+            ->where('c.deleted = false');
+
         return $this->paginator->paginate(
             $data,
             $page,
-            20
+            20,
         );
-    }
-    
-    private function getUploadPath(): string
-    {
-        return "{$this->kernel->getProjectDir()}/public/uploads/article";
     }
 }

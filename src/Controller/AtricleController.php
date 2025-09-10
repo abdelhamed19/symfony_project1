@@ -22,7 +22,12 @@ final class AtricleController extends AbstractFOSRestController
         private RestHelperService $rest
     ) {}
 
-    #[Route('/list', name: 'list_atricle',  methods: ['GET'])]
+    #[Route('/list', name: 'list_articles',  methods: ['GET'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function index(Request $request)
     {
         $articles = $this->articleService->listAll($request);
@@ -30,7 +35,12 @@ final class AtricleController extends AbstractFOSRestController
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
 
-    #[Route('/store', name: 'store_atricle',  methods: ['POST'])]
+    #[Route('/store', name: 'store_article',  methods: ['POST'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function store(Request $request)
     {
         $data = $request->request->all();
@@ -54,14 +64,24 @@ final class AtricleController extends AbstractFOSRestController
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
-    #[Route('/show/{id}', name: 'show_atricle',  methods: ['GET'], requirements: ['id' => '\d+'])]
+    #[Route('/show/{id}', name: 'show_article',  methods: ['GET'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function show(Article $article)
     {
         $this->rest->set('article', $article);
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
     }
 
-    #[Route('/update/{id}', name: 'update_atricle',  methods: ['PUT'], requirements: ['id' => '\d+'])]
+    #[Route('/update/{id}', name: 'update_article',  methods: ['PUT'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function update(Request $request, Article $article)
     {
         $data = $request->request->all();
@@ -84,7 +104,12 @@ final class AtricleController extends AbstractFOSRestController
         return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_BAD_REQUEST));
     }
 
-    #[Route('/delete/{id}', name: 'delete_atricle',  methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    #[Route('/delete/{id}', name: 'delete_article',  methods: ['DELETE'], requirements: ['id' => '\d+'])]
+    /**
+     * @OA\Tag(name="Articles")
+     * @OA\Parameter(ref="#/components/parameters/locale")
+     * @Security(name="Bearer")
+     */
     public function delete(Article $article)
     {
         try {

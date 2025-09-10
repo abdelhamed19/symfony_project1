@@ -26,7 +26,7 @@ class CategoryRepository extends ServiceEntityRepository
     public function findMaxSortOrder(): int
     {
         $result = $this->createQueryBuilder('c')
-            ->select('MAX(c.sort_order)')
+            ->select('MAX(c.sortOrder)')
             ->getQuery()
             ->getSingleScalarResult();
 
@@ -36,7 +36,7 @@ class CategoryRepository extends ServiceEntityRepository
     public function findAllOrderedBySortOrder($sort)
     {
         return $this->createQueryBuilder('c')
-            ->orderBy('c.sort_order', $sort)
+            ->orderBy('c.sortOrder', $sort)
             ->getQuery()
             ->getResult();
     }

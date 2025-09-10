@@ -21,7 +21,8 @@ class CategoryType extends AbstractType
                 'mimeTypesMessage' => 'Please upload a valid image (JPEG or PNG)',
             ])
         ];
-        if(!$options['edit']) {
+
+        if($options['file_required']) {
             $fileConstraints[] = new Assert\NotBlank([
                 'message' => 'Please upload an image file',
             ]);
@@ -41,7 +42,7 @@ class CategoryType extends AbstractType
         $resolver->setDefaults([
             'data_class' => Category::class,
             'csrf_protection' => false,
-            'edit' => false
+            'file_required' => false,
         ]);
     }
 }

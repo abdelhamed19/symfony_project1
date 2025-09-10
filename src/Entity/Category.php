@@ -22,7 +22,7 @@ class Category
     #[Serializer\Expose()]
     private ?int $id = null;
 
-    #[ORM\Column(length: 255, type:"string", nullable: false)]
+    #[ORM\Column(length: 255, type: "string", nullable: false)]
     #[Serializer\Expose()]
     #[Assert\NotBlank()]
     #[Assert\Length(min: 2, max: 255)]
@@ -42,15 +42,15 @@ class Category
 
     #[ORM\Column(type: "integer", options: ["default" => 0])]
     #[Serializer\Expose()]
-    private ?int $sort_order = 0;
+    private ?int $sortOrder = 0;
 
     #[ORM\Column(type: 'datetime_immutable')]
     #[Serializer\Expose()]
-    private ?\DateTimeImmutable $created_at = null;
+    private ?\DateTimeImmutable $createdAt = null;
 
     #[ORM\Column(type: 'datetime_immutable', nullable: true)]
     #[Serializer\Expose()]
-    private ?\DateTimeImmutable $updated_at = null;
+    private ?\DateTimeImmutable $updatedAt = null;
 
     /**
      * @var Collection<int, Article>
@@ -63,6 +63,9 @@ class Category
     #[Assert\Type(type: 'bool')]
     #[Serializer\Expose()]
     private ?bool $status = null;
+
+    #[ORM\Column(type: 'boolean')]
+    private ?bool $deleted = false;
 
     public function __construct()
     {
@@ -112,7 +115,7 @@ class Category
     #[Serializer\SerializedName('status_text')]
     public function getStatusValue()
     {
-        return $this->status == 1 ? "Active" : "Inactive";
+        return $this->status ? "Active" : "Inactive";
     }
 
     /**
@@ -125,18 +128,18 @@ class Category
 
     public function getSortOrder(): ?int
     {
-        return $this->sort_order;
+        return $this->sortOrder;
     }
 
-    public function setSortOrder(int $sort_order): static
+    public function setSortOrder(int $sortOrder): static
     {
-        $this->sort_order = $sort_order;
+        $this->sortOrder = $sortOrder;
         return $this;
     }
 
     public function getCreatedAt(): ?\DateTimeInterface
     {
-        return $this->created_at;
+        return $this->createdAt;
     }
 
     public function getImageType(): ?string
@@ -163,20 +166,31 @@ class Category
 
     public function getUpdatedAt(): ?\DateTimeInterface
     {
-        return $this->updated_at;
+        return $this->updatedAt;
+    }
+
+    public function isDeleted(): ?bool
+    {
+        return $this->deleted;
+    }
+
+    public function setDeleted(bool $deleted): self
+    {
+        $this->deleted = $deleted;
+        return $this;
     }
 
     #[ORM\PrePersist]
     public function setCreatedAtValue(): void
     {
-        $this->created_at = new \DateTimeImmutable();
-        $this->updated_at = new \DateTimeImmutable();
+        $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     #[ORM\PreUpdate]
     public function setUpdatedAtValue(): void
     {
-        $this->updated_at = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
     }
 
     public function addArticle(Article $article): static

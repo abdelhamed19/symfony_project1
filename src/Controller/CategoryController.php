@@ -9,11 +9,13 @@ use App\Form\UpdateSortOrderType;
 use App\Services\CategoryService;
 use App\Services\RestHelperService;
 use Doctrine\ORM\EntityManagerInterface;
+use App\Job\Message\CategoryDeleteMessage;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Messenger\MessageBusInterface;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
-use Symfony\Component\HttpFoundation\Response;
 
 #[Route('/api/categories')]
 final class CategoryController extends AbstractFOSRestController
@@ -49,20 +51,18 @@ final class CategoryController extends AbstractFOSRestController
      * @OA\Parameter(ref="#/components/parameters/locale")
      * @Security(name="Bearer")
      */
-    public function create(Request $request): Response
+    public function createWithoutImage(Request $request): Response
     {
         $category = new Category();
 
-        $form = $this->createForm(CategoryType::class, $category, [
-            'edit' => true
-        ]);
+        $form = $this->createForm(CategoryType::class, $category);
 
         $form->submit($request->request->all());
 
         if ($form->isSubmitted() && $form->isValid()) {
 
-            // $maxSortOrder = $this->categoryService->findMaxSortOrder();
-            // $category->setSortOrder($maxSortOrder + 1);
+            $maxSortOrder = $this->categoryService->findMaxSortOrder();
+            $category->setSortOrder($maxSortOrder + 1);
 
             $this->em->persist($category);
 
@@ -105,7 +105,9 @@ final class CategoryController extends AbstractFOSRestController
         $data = json_decode($dataString, true) ?? [];
 
         $category = new Category();
-        $form = $this->createForm(CategoryType::class, $category);
+        $form = $this->createForm(CategoryType::class, $category, [
+            'file_required' => true
+        ]);
 
         // form-data -> $request->request->all()
         // raw/json -> json_decode($request->getContent(), true)
@@ -116,8 +118,8 @@ final class CategoryController extends AbstractFOSRestController
         ]);
 
         if ($form->isSubmitted() && $form->isValid()) {
-            // $maxSortOrder = $this->categoryService->findMaxSortOrder();
-            // $category->setSortOrder($maxSortOrder + 1);
+            $maxSortOrder = $this->categoryService->findMaxSortOrder();
+            $category->setSortOrder($maxSortOrder + 1);
 
             $this->em->persist($category);
             $this->em->flush();
@@ -222,8 +224,7 @@ final class CategoryController extends AbstractFOSRestController
                 $this->rest
                     ->succeeded()
                     ->addMessage('Category updated successfully')
-                    ->setData($category)
-                    ->set('status', 200);
+                    ->setData($category);
                 return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
             } catch (\Exception $e) {
                 $this->rest
@@ -290,11 +291,13 @@ final class CategoryController extends AbstractFOSRestController
      * @OA\Parameter(ref="#/components/parameters/locale")
      * @Security(name="Bearer")
      */
-    public function delete(Category $category)
+    public function delete(Category $category, MessageBusInterface $bus)
     {
         try {
-            $this->em->remove($category);
+            $category->setDeleted(1);
             $this->em->flush();
+
+            $bus->dispatch(new CategoryDeleteMessage($category->getId()));
 
             $this->rest
                 ->succeeded()

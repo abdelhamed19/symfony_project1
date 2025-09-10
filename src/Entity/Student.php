@@ -26,7 +26,7 @@ class Student
     #[Assert\Length(min: 2, max: 255)]
     private ?string $name = null;
 
-    #[ORM\Column(length: 255)]
+    #[ORM\Column(length: 255, nullable: true)]
     #[Serializer\Expose()]
     private ?string $image = null;
 
@@ -37,7 +37,7 @@ class Student
     #[ORM\Column(type: 'boolean')]
     #[Serializer\Expose()]
     #[Assert\NotBlank()]
-    private ?bool $gender = null;
+    private ?bool $gender;
 
     #[ORM\Column]
     #[Serializer\Expose()]
@@ -82,14 +82,14 @@ class Student
     #[Serializer\Expose()]
     public function getGenderText()
     {
-        return $this->gender == 1 ? "Male" : "Female";
+        return $this->gender ? "Male" : "Female";
     }
 
     public function getImage(): ?string
     {
         return $this->image;
     }
-    public function setImage(string $image): static
+    public function setImage($image): static
     {
         $this->image = $image;
 
