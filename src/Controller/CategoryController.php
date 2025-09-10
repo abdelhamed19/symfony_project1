@@ -182,7 +182,6 @@ final class CategoryController extends AbstractFOSRestController
      * @OA\Parameter(ref="#/components/parameters/locale")
      * @Security(name="Bearer")
      */
-
     public function show(Category $category)
     {
         $this->rest->setData($category);

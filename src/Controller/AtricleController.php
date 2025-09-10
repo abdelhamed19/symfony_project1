@@ -43,15 +43,23 @@ final class AtricleController extends AbstractFOSRestController
      */
     public function store(Request $request)
     {
-        $data = $request->request->all();
+        $dataString = $request->request->get('data');
+        $file = $request->files->get('image');
+        $data = json_decode($dataString, true) ?? [];
         $article = new Article();
 
         $form = $this->createForm(ArticleType::class, $article);
-        $form->submit($data);
+        $form->submit([
+            ...$data,
+            'image' => $file
+        ]);
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->em->persist($article);
             $this->em->flush();
+
+            $this->articleService->uploadImage($article, $file);
+            
             $this->rest
                 ->succeeded()
                 ->setData($article);

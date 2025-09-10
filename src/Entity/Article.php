@@ -38,6 +38,10 @@ class Article
     #[Serializer\Expose()]
     private ?\DateTimeInterface $updatedAt = null;
 
+    #[ORM\Column(type: 'string', length: 255, nullable: true)]
+    #[Serializer\Expose()]
+    private ?string $image = null;
+
     public function getId(): ?int
     {
         return $this->id;
@@ -68,6 +72,17 @@ class Article
     public function getUpdatedAt(): ?\DateTimeInterface
     {
         return $this->updatedAt;
+    }
+
+    public function getImage(): ?string
+    {
+        return $this->image;
+    }
+
+    public function setImage(?string $image): self
+    {
+        $this->image = $image;
+        return $this;
     }
 
     #[ORM\PrePersist]

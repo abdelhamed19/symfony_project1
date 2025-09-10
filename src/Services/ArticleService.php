@@ -35,4 +35,42 @@ class ArticleService
             20,
         );
     }
+
+    private function getUploadPath(): string
+    {
+        return "{$this->kernel->getProjectDir()}/public/uploads/articles";
+    }
+
+    public function uploadImage(Article $article, $uploadedFile): void
+    {
+        if ($uploadedFile instanceof UploadedFile) {
+            $this->removeImage($article);
+            $fileName = Uuid::v4();
+            $extension = strtolower($uploadedFile->getClientOriginalExtension());
+            if ($extension) {
+                $fileName = "{$fileName}.{$extension}";
+            }
+            $uploadedFile->move($this->getUploadPath(), $fileName);
+
+            $article->setImage($fileName);
+
+            $this->em->flush();
+        }
+    }
+
+    public function removeImage(Article $article): void
+    {
+        if ($article->getImage()) {
+            $filePath = "{$this->getUploadPath()}/{$article->getImage()}";
+            $fs = new Filesystem();
+            if ($fs->exists($filePath)) {
+                $fs->remove($filePath);
+            }
+        }
+
+        if ($article->getId()) {
+            $article->setImage(null);
+            $this->em->flush();
+        }
+    }
 }
