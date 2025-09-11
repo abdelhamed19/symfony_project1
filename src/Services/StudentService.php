@@ -38,6 +38,7 @@ class StudentService
             20
         );
     }
+    
     private function getUploadPath(): string
     {
         return "{$this->kernel->getProjectDir()}/public/uploads/students";

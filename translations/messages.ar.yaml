@@ -1,0 +1,7 @@
+unable_to_delete_item: غير قادر على حذف %item%.
+item_created: "تم إنشاء %item% بنجاح."
+image_uploaded: "تم تحميل الصورة بنجاح."
+item_updated: "تم تحديث %item% بنجاح."
+item_deleted: "تم حذف %item% بنجاح."
+image_removed: "تمت إزالة الصورة بنجاح."
+order_sorted: "تم تحديث الطلب بنجاح."

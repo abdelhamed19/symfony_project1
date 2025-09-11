@@ -14,6 +14,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Contracts\Translation\TranslatorInterface;
 use FOS\RestBundle\Controller\AbstractFOSRestController;
 use Doctrine\DBAL\Exception\ForeignKeyConstraintViolationException;
 
@@ -24,7 +25,8 @@ final class CategoryController extends AbstractFOSRestController
     public function __construct(
         private CategoryService $categoryService,
         private EntityManagerInterface $em,
-        private RestHelperService $rest
+        private RestHelperService $rest,
+        private TranslatorInterface $ts
     ) {}
 
     #[Route('/index', name: 'all_categories', methods: ['GET'])]
@@ -70,6 +72,7 @@ final class CategoryController extends AbstractFOSRestController
 
             $this->rest
                 ->succeeded()
+                ->addMessage($this->ts->trans('item_created', ['%item%' => 'Category']))
                 ->setData($category);
 
             return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
@@ -128,9 +131,8 @@ final class CategoryController extends AbstractFOSRestController
 
             $this->rest
                 ->succeeded()
-                ->addMessage('Category created successfully')
-                ->setData($category)
-                ->set('status', 201);
+                ->addMessage($this->ts->trans('item_created', ['%item%' => 'Category']))
+                ->setData($category);
 
             return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
         }
@@ -165,7 +167,10 @@ final class CategoryController extends AbstractFOSRestController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->categoryService->uploadImage($category, $file);
-            $this->rest->succeeded()->setData($category);
+            $this->rest
+                ->succeeded()
+                ->addMessage($this->ts->trans('image_uploaded'))
+                ->setData($category);
             return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_CREATED));
         }
 
@@ -222,7 +227,7 @@ final class CategoryController extends AbstractFOSRestController
                 $this->em->flush();
                 $this->rest
                     ->succeeded()
-                    ->addMessage('Category updated successfully')
+                    ->addMessage($this->ts->trans('item_updated', ['%item%' => 'Category']))
                     ->setData($category);
                 return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
             } catch (\Exception $e) {
@@ -272,7 +277,7 @@ final class CategoryController extends AbstractFOSRestController
             $this
                 ->rest
                 ->succeeded()
-                ->addMessage('Category updated successfully')
+                ->addMessage($this->ts->trans('item_updated', ['%item%' => 'Category']))
                 ->setData($category)
                 ->set('status', 200);
             return $this->handleView($this->view($this->rest->getResponse(), Response::HTTP_OK));
@@ -300,11 +305,12 @@ final class CategoryController extends AbstractFOSRestController
 
             $this->rest
                 ->succeeded()
+                ->addMessage($this->ts->trans('item_deleted', ['%item%' => 'Category']))
                 ->setData($category);
         } catch (ForeignKeyConstraintViolationException $e) {
             $this->rest
                 ->failed()
-                ->addMessage('Unable to delete the category');
+                ->addMessage($this->ts->trans('unable_to_delete_item', ['%item%' => 'Category']));
         }
     }
 
@@ -317,7 +323,10 @@ final class CategoryController extends AbstractFOSRestController
     public function removeImage(Category $category)
     {
         $this->categoryService->removeImage($category);
-        $this->rest->succeeded()->setData($category);
+        $this->rest
+        ->succeeded()
+        ->addMessage($this->ts->trans('image_removed'))
+        ->setData($category);
         return $this->handleView($this->view($this->rest->getResponse()));
     }
 
@@ -330,7 +339,9 @@ final class CategoryController extends AbstractFOSRestController
 
         if ($form->isSubmitted() && $form->isValid()) {
             $this->em->flush();
-            $this->rest->succeeded();
+            $this->rest
+            ->addMessage($this->ts->trans('order_sorted'))
+            ->succeeded();
             return $this->handleView($this->view($this->rest->getResponse()));
         }
 

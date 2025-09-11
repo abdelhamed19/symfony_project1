@@ -1,0 +1,4 @@
+This value should not be blank.: "This value should not be blank."
+The file is too large.: "The file is too large."
+No file was uploaded.: "No file was uploaded."
+This value is too short. It should have {{ limit }} character or more.|This value is too short. It should have {{ limit }} characters or more.: "This value is too short. It should have {{ limit }} character or more.|This value is too short. It should have {{ limit }} characters or more."

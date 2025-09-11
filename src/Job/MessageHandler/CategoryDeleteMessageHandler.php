@@ -14,6 +14,7 @@ class CategoryDeleteMessageHandler
     public function __construct(
         private EntityManagerInterface $em
     ) {}
+    
     public function __invoke(CategoryDeleteMessage $message)
     {
         $categoryId = $message->getCategoryId();

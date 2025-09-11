@@ -1,0 +1,7 @@
+unable_to_delete_item: "Unable to delete %item%."
+item_created: "'%item%' created successfully."
+image_uploaded: "Image uploaded successfully."
+item_updated: "'%item%' updated successfully."
+item_deleted: "'%item%' deleted successfully."
+image_removed: "Image removed successfully."
+order_sorted: "Order updated successfully."

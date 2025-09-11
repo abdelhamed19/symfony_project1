@@ -1,0 +1,4 @@
+This value should not be blank.: "لا يمكن أن يكون هذا الحقل فارغًا."
+The file is too large.: "الملف كبير جدًا."
+No file was uploaded.: "لم يتم تحميل أي ملف."
+This value is too short. It should have {{ limit }} character or more.|This value is too short. It should have {{ limit }} characters or more.: "يجب أن تكون هذه القيمة {{ limit }} أو أكثر."
